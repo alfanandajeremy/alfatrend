@@ -1,13 +1,9 @@
 from pytrends.request import TrendReq
-import requests
-from bs4 import BeautifulSoup
+import pandas as pd
 
 
 def get_google_trends():
 
-    # ====================================
-    # METHOD 1 — PYTRENDS
-    # ====================================
     try:
 
         pytrends = TrendReq(
@@ -15,102 +11,57 @@ def get_google_trends():
             tz=360
         )
 
-        trending = pytrends.today_searches(
-            pn='ID'
+        # ====================================
+        # GOOGLE TRENDING SEARCHES
+        # ====================================
+        trending = pytrends.trending_searches(
+            pn='indonesia'
         )
 
-        trends = trending.tolist()
+        # ====================================
+        # CONVERT TO LIST
+        # ====================================
+        if isinstance(trending, pd.DataFrame):
 
-        trends = clean_trends(trends)
+            trends = trending[0].tolist()
 
-        if trends:
-            return trends
+        else:
 
-    except Exception:
-        pass
+            trends = list(trending)
 
-    # ====================================
-    # METHOD 2 — SCRAPING FALLBACK
-    # ====================================
-    try:
+        # ====================================
+        # CLEAN DATA
+        # ====================================
+        cleaned = []
 
-        url = (
-            "https://trends.google.com/trends/trendingsearches/daily?geo=ID"
-        )
+        for trend in trends:
 
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0"
-            )
-        }
-
-        response = requests.get(
-            url,
-            headers=headers,
-            timeout=20
-        )
-
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
-
-        text = soup.get_text()
-
-        trends = []
-
-        for line in text.splitlines():
-
-            line = line.strip()
+            trend = str(trend).strip()
 
             if (
-                len(line) > 3
-                and len(line) < 80
-                and "Google" not in line
-                and "Trends" not in line
+                len(trend) > 2
+                and len(trend) < 100
+                and trend not in cleaned
             ):
 
-                trends.append(line)
+                cleaned.append(trend)
 
-        trends = clean_trends(trends)
+        # ====================================
+        # SAFE FALLBACK
+        # ====================================
+        if not cleaned:
 
-        if trends:
-            return trends[:20]
+            return [
+                "Indonesia",
+                "AI",
+                "Bitcoin",
+                "Teknologi"
+            ]
 
-    except Exception:
-        pass
+        return cleaned
 
-    # ====================================
-    # METHOD 3 — SAFE FALLBACK
-    # ====================================
-    return [
-        "Indonesia",
-        "Teknologi AI",
-        "Bitcoin",
-        "Timnas Indonesia",
-        "IHSG",
-        "Startup",
-        "DeepSeek",
-        "OpenAI",
-        "TikTok",
-        "YouTube"
-    ]
+    except Exception as e:
 
-
-def clean_trends(trends):
-
-    cleaned = []
-
-    for trend in trends:
-
-        trend = str(trend).strip()
-
-        if (
-            len(trend) > 2
-            and len(trend) < 100
-            and trend not in cleaned
-        ):
-
-            cleaned.append(trend)
-
-    return cleaned
+        return [
+            f"Trend Error: {str(e)}"
+        ]
