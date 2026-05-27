@@ -6,3 +6,5 @@ pytrends
 beautifulsoup4
 lxml
 numpy
+plotly
+streamlit-option-menu
