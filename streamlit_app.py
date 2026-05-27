@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 from streamlit_option_menu import option_menu
 
@@ -24,6 +23,7 @@ st.set_page_config(
 def load_css():
 
     with open("assets/style.css") as f:
+
         st.markdown(
             f"<style>{f.read()}</style>",
             unsafe_allow_html=True
@@ -54,31 +54,61 @@ with st.sidebar:
     )
 
 # =========================
-# SECRET
+# SECRET API KEY
 # =========================
 api_key = st.secrets["DEEPSEEK_API_KEY"]
 
 # =========================
-# LOAD DATA
+# GET DATA
 # =========================
-trends = get_google_trends()
-news = get_news()
+try:
+    trends = get_google_trends()
 
+    if not isinstance(trends, list):
+        trends = list(trends)
+
+except Exception as e:
+
+    trends = [
+        f"Google Trends Error: {e}"
+    ]
+
+try:
+    news = get_news()
+
+except Exception as e:
+
+    news = [
+        f"News Error: {e}"
+    ]
+
+# =========================
+# COMBINE DATA
+# =========================
 combined_text = "\n".join(
     trends + news
 )
 
-ai_result = analyze_trends(
-    api_key,
-    combined_text
-)
+# =========================
+# AI ANALYSIS
+# =========================
+try:
+
+    ai_result = analyze_trends(
+        api_key,
+        combined_text
+    )
+
+except Exception as e:
+
+    ai_result = f"AI Error: {e}"
 
 # =========================
 # HEADER
 # =========================
 st.markdown("""
 <div class="main-title">
-    INDONESIA TREND INTELLIGENCE
+INDONESIA TREND INTELLIGENCE
 </div>
 """, unsafe_allow_html=True)
 
@@ -88,6 +118,7 @@ st.markdown("""
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
+
     st.markdown("""
     <div class="metric-card">
         <h2>24</h2>
@@ -96,6 +127,7 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
+
     st.markdown("""
     <div class="metric-card">
         <h2>89%</h2>
@@ -104,6 +136,7 @@ with col2:
     """, unsafe_allow_html=True)
 
 with col3:
+
     st.markdown("""
     <div class="metric-card">
         <h2>120K</h2>
@@ -112,6 +145,7 @@ with col3:
     """, unsafe_allow_html=True)
 
 with col4:
+
     st.markdown("""
     <div class="metric-card">
         <h2>18</h2>
@@ -120,39 +154,77 @@ with col4:
     """, unsafe_allow_html=True)
 
 # =========================
-# CHARTS
+# TREND CHART
 # =========================
+st.subheader("📈 Trending Chart")
+
+# FIX LENGTH ISSUE
+trend_count = min(len(trends), 10)
+
 chart_df = pd.DataFrame({
-    "keyword": trends[:10],
-    "score": list(range(10, 0, -1))
+    "keyword": trends[:trend_count],
+    "score": list(range(trend_count, 0, -1))
 })
 
-fig = px.line(
-    chart_df,
-    x="keyword",
-    y="score",
-    markers=True
-)
+if not chart_df.empty:
 
-fig.update_layout(
-    paper_bgcolor="#0d0221",
-    plot_bgcolor="#0d0221",
-    font_color="white"
-)
+    fig = px.line(
+        chart_df,
+        x="keyword",
+        y="score",
+        markers=True
+    )
 
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
+    fig.update_layout(
+        paper_bgcolor="#0d0221",
+        plot_bgcolor="#0d0221",
+        font_color="white"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+else:
+
+    st.warning("No trend data available")
 
 # =========================
-# AI ANALYSIS
+# TABLES
 # =========================
-st.markdown("""
-<div class="section-title">
-AI TREND ANALYSIS
-</div>
-""", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+
+with col1:
+
+    st.subheader("📈 Google Trends")
+
+    trend_df = pd.DataFrame({
+        "Trending Keyword": trends
+    })
+
+    st.dataframe(
+        trend_df,
+        use_container_width=True
+    )
+
+with col2:
+
+    st.subheader("📰 News Headlines")
+
+    news_df = pd.DataFrame({
+        "Headline": news
+    })
+
+    st.dataframe(
+        news_df,
+        use_container_width=True
+    )
+
+# =========================
+# AI RESULT
+# =========================
+st.subheader("🤖 AI Trend Analysis")
 
 st.markdown(f"""
 <div class="ai-box">
