@@ -1,0 +1,8 @@
+streamlit
+pandas
+requests
+feedparser
+pytrends
+beautifulsoup4
+lxml
+numpy
