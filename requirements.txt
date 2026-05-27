@@ -8,3 +8,4 @@ lxml
 numpy
 plotly
 streamlit-option-menu
+praw
