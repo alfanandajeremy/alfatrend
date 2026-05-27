@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from collections import Counter
+import re
 
 from streamlit_option_menu import option_menu
 
-from services.google_trends import get_google_trends
 from services.rss_news import get_news
 from services.deepseek_ai import analyze_trends
 
@@ -40,13 +41,11 @@ with st.sidebar:
         menu_title="Dashboard",
         options=[
             "Overview",
-            "Trending",
             "News",
             "AI Analysis"
         ],
         icons=[
             "house",
-            "graph-up",
             "newspaper",
             "robot"
         ],
@@ -59,21 +58,10 @@ with st.sidebar:
 api_key = st.secrets["DEEPSEEK_API_KEY"]
 
 # =========================
-# GET DATA
+# GET NEWS
 # =========================
 try:
-    trends = get_google_trends()
 
-    if not isinstance(trends, list):
-        trends = list(trends)
-
-except Exception as e:
-
-    trends = [
-        f"Google Trends Error: {e}"
-    ]
-
-try:
     news = get_news()
 
 except Exception as e:
@@ -83,11 +71,9 @@ except Exception as e:
     ]
 
 # =========================
-# COMBINE DATA
+# COMBINE TEXT
 # =========================
-combined_text = "\n".join(
-    trends + news
-)
+combined_text = "\n".join(news)
 
 # =========================
 # AI ANALYSIS
@@ -102,6 +88,41 @@ try:
 except Exception as e:
 
     ai_result = f"AI Error: {e}"
+
+# =========================
+# KEYWORD EXTRACTION
+# =========================
+all_text = " ".join(news).lower()
+
+words = re.findall(
+    r'\b[a-zA-Z]{4,}\b',
+    all_text
+)
+
+stopwords = {
+    "yang",
+    "dari",
+    "untuk",
+    "dengan",
+    "karena",
+    "dalam",
+    "pada",
+    "adalah",
+    "setelah",
+    "hingga",
+    "tentang"
+}
+
+filtered_words = [
+    word for word in words
+    if word not in stopwords
+]
+
+word_freq = Counter(
+    filtered_words
+)
+
+top_keywords = word_freq.most_common(10)
 
 # =========================
 # HEADER
@@ -119,10 +140,10 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="metric-card">
-        <h2>24</h2>
-        <p>Trending Topics</p>
+        <h2>{len(news)}</h2>
+        <p>Total Headlines</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -130,17 +151,17 @@ with col2:
 
     st.markdown("""
     <div class="metric-card">
-        <h2>89%</h2>
-        <p>Positive Sentiment</p>
+        <h2>AI</h2>
+        <p>Trend Analysis</p>
     </div>
     """, unsafe_allow_html=True)
 
 with col3:
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="metric-card">
-        <h2>120K</h2>
-        <p>Total Mentions</p>
+        <h2>{len(top_keywords)}</h2>
+        <p>Top Keywords</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -148,31 +169,31 @@ with col4:
 
     st.markdown("""
     <div class="metric-card">
-        <h2>18</h2>
-        <p>Emerging Trends</p>
+        <h2>LIVE</h2>
+        <p>News Monitoring</p>
     </div>
     """, unsafe_allow_html=True)
 
 # =========================
 # TREND CHART
 # =========================
-st.subheader("📈 Trending Chart")
+st.subheader("📈 Trending Keywords")
 
-# FIX LENGTH ISSUE
-trend_count = min(len(trends), 10)
+if top_keywords:
 
-chart_df = pd.DataFrame({
-    "keyword": trends[:trend_count],
-    "score": list(range(trend_count, 0, -1))
-})
+    chart_df = pd.DataFrame(
+        top_keywords,
+        columns=[
+            "keyword",
+            "count"
+        ]
+    )
 
-if not chart_df.empty:
-
-    fig = px.line(
+    fig = px.bar(
         chart_df,
         x="keyword",
-        y="score",
-        markers=True
+        y="count",
+        color="count"
     )
 
     fig.update_layout(
@@ -188,41 +209,26 @@ if not chart_df.empty:
 
 else:
 
-    st.warning("No trend data available")
-
-# =========================
-# TABLES
-# =========================
-col1, col2 = st.columns(2)
-
-with col1:
-
-    st.subheader("📈 Google Trends")
-
-    trend_df = pd.DataFrame({
-        "Trending Keyword": trends
-    })
-
-    st.dataframe(
-        trend_df,
-        use_container_width=True
-    )
-
-with col2:
-
-    st.subheader("📰 News Headlines")
-
-    news_df = pd.DataFrame({
-        "Headline": news
-    })
-
-    st.dataframe(
-        news_df,
-        use_container_width=True
+    st.warning(
+        "No keyword data"
     )
 
 # =========================
-# AI RESULT
+# NEWS TABLE
+# =========================
+st.subheader("📰 News Headlines")
+
+news_df = pd.DataFrame({
+    "Headline": news
+})
+
+st.dataframe(
+    news_df,
+    use_container_width=True
+)
+
+# =========================
+# AI ANALYSIS
 # =========================
 st.subheader("🤖 AI Trend Analysis")
 
